@@ -25,7 +25,28 @@ green='\e[0;32m'
 PANEL_URL=""
 API_KEY=""
 SERVER_NAME=""
+SERVER_IP=""
+AUTO_INSTALL="no"
 VPS_IP=$(curl -sS icanhazip.com 2>/dev/null || curl -sS ifconfig.me 2>/dev/null)
+
+# Load config if provided
+load_config() {
+    local config_file="$1"
+    
+    if [[ -f "$config_file" ]]; then
+        echo -e "${BLUE}[INFO]${NC} Loading configuration from $config_file..."
+        source "$config_file"
+        AUTO_INSTALL="yes"
+        echo -e "${OK} Configuration loaded successfully"
+        return 0
+    fi
+    return 1
+}
+
+# Check command line arguments
+if [[ "$1" == "--config" ]] && [[ -n "$2" ]]; then
+    load_config "$2"
+fi
 
 clear
 
@@ -87,6 +108,17 @@ check_system() {
 
 # Get panel configuration
 get_panel_config() {
+    if [[ "$AUTO_INSTALL" == "yes" ]]; then
+        echo -e "${BLUE}[INFO]${NC} Using auto-install configuration"
+        echo -e "${OK} Panel URL: $PANEL_URL"
+        echo -e "${OK} API Key: ${API_KEY:0:20}..."
+        echo -e "${OK} Server Name: $SERVER_NAME"
+        echo -e "${OK} Server IP: $SERVER_IP"
+        echo -e "${OK} VPS IP: $VPS_IP"
+        echo ""
+        return 0
+    fi
+    
     echo -e "${BLUE}[INFO]${NC} Konfigurasi Panel Connection"
     echo ""
     
@@ -536,18 +568,22 @@ main() {
     get_panel_config
     
     # Confirm installation
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "  ${BLUE}KONFIRMASI INSTALASI${NC}"
-    echo -e "  Panel URL    : $PANEL_URL"
-    echo -e "  Server Name  : $SERVER_NAME"
-    echo -e "  Server IP    : $VPS_IP"
-    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo ""
-    read -p "Lanjutkan instalasi? (y/N): " confirm
-    
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-        echo -e "${YELLOW}Instalasi dibatalkan.${NC}"
-        exit 0
+    if [[ "$AUTO_INSTALL" != "yes" ]]; then
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  ${BLUE}KONFIRMASI INSTALASI${NC}"
+        echo -e "  Panel URL    : $PANEL_URL"
+        echo -e "  Server Name  : $SERVER_NAME"
+        echo -e "  Server IP    : $VPS_IP"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        read -p "Lanjutkan instalasi? (y/N): " confirm
+        
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo -e "${YELLOW}Instalasi dibatalkan.${NC}"
+            exit 0
+        fi
+    else
+        echo -e "${BLUE}[INFO]${NC} Auto-install mode: proceeding with installation..."
     fi
     
     echo ""
